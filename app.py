@@ -1,5 +1,6 @@
 import os
 import tempfile
+import shutil
 import streamlit as st
 import chess
 import chess.pgn
@@ -239,7 +240,7 @@ def calcular_elo_precision(lista_cpl):
 with st.expander("--- CUESTIONARIO PREVIO DE AUTO-REFLEXIÓN (PEDAGOGÍA DE GRAU) ---", expanded=False):
     st.write("Como tu mentor, exijo tu honestidad intelectual antes de auditar la partida:")
     fase_colapso = st.text_input("1. ¿En qué fase del juego sientes que colapsó la armonía de tus piezas?")
-    tipo_error = st.selectbox("2. چه Fue tu mayor error de juicio un fallo táctico o de planificación?", 
+    tipo_error = st.selectbox("2. ¿Fue tu mayor error de juicio un fallo táctico o de planificación?", 
                               ["Selecciona...", "Fallo táctico (Visión Inmediata)", "Fallo de planificación (Visión Mediata)"])
     plan_peones = st.text_input("3. ¿Crees que colocaste tus peones de acuerdo con la base de planes estáticos de Grau?")
 
@@ -259,15 +260,20 @@ if st.button("Iniciar Análisis Táctico e Implacable", type="primary"):
             tmp_path = tmp.name
 
         with st.spinner("Desmantelando decisiones y cruzando marcos teóricos... Por favor, espera."):
+            
+            # --- PARCHE DE RUTAS PARA STOCKFISH (WINDOWS Y NUBE LINUX) ---
             RUTA_STOCKFISH = "stockfish-windows-x86-64-avx2.exe"
             if not os.path.exists(RUTA_STOCKFISH):
-                RUTA_STOCKFISH = "stockfish"
+                # Busca Stockfish en las variables de sistema o en la ruta habitual de Linux
+                RUTA_STOCKFISH = shutil.which("stockfish")
+                if not RUTA_STOCKFISH:
+                    RUTA_STOCKFISH = "/usr/games/stockfish"
 
             try:
                 engine = chess.engine.SimpleEngine.popen_uci(RUTA_STOCKFISH)
                 engine.configure({"Skill Level": 20})
             except Exception as e:
-                st.error(f"Error al iniciar Stockfish: {e}")
+                st.error(f"Error al iniciar Stockfish: {e}. Ruta intentada: {RUTA_STOCKFISH}")
                 st.stop()
 
             with open(tmp_path, "r", encoding="utf-8") as archivo_pgn:
@@ -337,9 +343,7 @@ if st.button("Iniciar Análisis Táctico e Implacable", type="primary"):
                 
                 if es_mi_turno:
                     mi_cpl.append(cpl)
-                    if pieza_movida == chess.PAWN:
-                        pass
-                        
+                    
                     def registrar_error(tipo, desc):
                         if tipo not in resumen_errores:
                             resumen_errores[tipo] = {"desc": desc, "turnos": []}
