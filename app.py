@@ -78,9 +78,9 @@ def generar_tablero_svg(tablero, jugada_jugada=None, mejor_jugada=None, color_us
     """Crea la imagen del tablero con flechas indicativas."""
     flechas = []
     if jugada_jugada:
-        flechas.append(chess.svg.Arrow(jugada_jugada.from_square, jugada_jugada.to_square, color="#dc2626"))  # Flecha roja (error)
+        flechas.append(chess.svg.Arrow(jugada_jugada.from_square, jugada_jugada.to_square, color="#dc2626"))  # Flecha roja
     if mejor_jugada:
-        flechas.append(chess.svg.Arrow(mejor_jugada.from_square, mejor_jugada.to_square, color="#16a34a"))  # Flecha verde (óptima)
+        flechas.append(chess.svg.Arrow(mejor_jugada.from_square, mejor_jugada.to_square, color="#16a34a"))  # Flecha verde
     
     svg_data = chess.svg.board(
         board=tablero,
@@ -90,10 +90,6 @@ def generar_tablero_svg(tablero, jugada_jugada=None, mejor_jugada=None, color_us
     )
     b64 = base64.b64encode(svg_data.encode("utf-8")).decode("utf-8")
     return f'<div style="display:flex; justify-content:center;"><img src="data:image/svg+xml;base64,{b64}" style="width:100%; max-width:310px; border-radius:8px; box-shadow:0 3px 6px rgba(0,0,0,0.12);"/></div>'
-
-def evaluar_material(tablero, color):
-    valores = {chess.PAWN: 1, chess.KNIGHT: 3, chess.BISHOP: 3, chess.ROOK: 5, chess.QUEEN: 9}
-    return sum(len(tablero.pieces(p, color)) * v for p, v in valores.items())
 
 def detectar_diagnostico_conceptual(tablero, color, jugada, pieza_movida, turno_real, cpl):
     conceptos = []
@@ -125,7 +121,7 @@ def calcular_elo_precision(lista_cpl):
     return max(100, int(3000 - (acpl * 14.5))), round(max(0.0, min(100.0, 100 - (acpl / 2.3))), 1)
 
 # =====================================================================
-# ENTRADA DE DATOS Y CONFIGURACIÓN
+# ENTRADA DE DATOS
 # =====================================================================
 
 col_izq, col_der = st.columns([1, 2])
@@ -155,7 +151,6 @@ if btn_analizar:
         st.warning("⚠️ Introduce o pega una partida en formato PGN antes de continuar.")
         st.stop()
 
-    # Ubicar Stockfish
     RUTA_STOCKFISH = "stockfish-windows-x86-64-avx2.exe"
     if not os.path.exists(RUTA_STOCKFISH):
         RUTA_STOCKFISH = shutil.which("stockfish") or "/usr/games/stockfish"
@@ -181,7 +176,7 @@ if btn_analizar:
     perdidas_analizadas = []
     celadas_tricky = []
     
-    with st.spinner("Auditoría en curso: calculando variantes de castigo y posiciones críticas..."):
+    with st.spinner("Auditoría en curso: analizando variantes tácticas y posiciones críticas..."):
         jugada_contador = 1
         for nodo in partida.mainline():
             jugada = nodo.move
@@ -194,14 +189,18 @@ if btn_analizar:
             
             tablero_antes = tablero.copy()
             
-            # Análisis antes de mover
-            info_antes = engine.analyse(tablero, limite, multipv=1)
-            eval_antes = info_antes["score"].pov(tablero.turn).score(mate_score=10000)
+            # 1. Análisis antes de la jugada
+            info_antes = engine.analyse(tablero, limite)
+            eval_antes = 0
+            if "score" in info_antes and info_antes["score"]:
+                eval_score = info_antes["score"].pov(tablero.turn).score(mate_score=10000)
+                eval_antes = eval_score if eval_score is not None else 0
+            
             pv_antes = info_antes.get("pv", [])
             mejor_jugada = pv_antes[0] if pv_antes else None
             linea_optima = pv_a_san(tablero, pv_antes, 6)
             
-            # Celadas / Triquiñuelas si no jugó la mejor
+            # Celadas / Oportunidades tácticas
             if es_mi_turno and turno_num <= 18:
                 try:
                     multipv = engine.analyse(tablero, limite, multipv=2)
@@ -223,9 +222,13 @@ if btn_analizar:
 
             tablero.push(jugada)
             
-            # Análisis después de mover
-            info_despues = engine.analyse(tablero, limite, multipv=1)
-            eval_despues = info_despues["score"].pov(not tablero.turn).score(mate_score=10000)
+            # 2. Análisis después de la jugada
+            info_despues = engine.analyse(tablero, limite)
+            eval_despues = 0
+            if "score" in info_despues and info_despues["score"]:
+                eval_score_d = info_despues["score"].pov(not tablero.turn).score(mate_score=10000)
+                eval_despues = eval_score_d if eval_score_d is not None else 0
+                
             pv_castigo = info_despues.get("pv", [])
             linea_castigo = pv_a_san(tablero, pv_castigo, 6)
             
@@ -233,7 +236,7 @@ if btn_analizar:
             
             if es_mi_turno:
                 lista_cpl.append(cpl)
-                # Si hubo pérdida notable (CPL >= 75)
+                # Detección de errores notables (pérdida >= 0.75 peones)
                 if cpl >= 75 and mejor_jugada and jugada != mejor_jugada:
                     conceptos = detectar_diagnostico_conceptual(tablero_antes, MI_COLOR, jugada, pieza_tipo, turno_num, cpl)
                     tipo_fallo = "Error Grave (Blunder)" if cpl >= 180 else "Imprecisión / Error"
@@ -259,30 +262,26 @@ if btn_analizar:
     elo_est, prec_est = calcular_elo_precision(lista_cpl)
 
     # =====================================================================
-    # PANEL DE RESULTADOS (INTERFAZ LIMPIA Y VISUAL)
+    # PANEL DE RESULTADOS
     # =====================================================================
     st.markdown("---")
     
-    # 1. Métricas Principales en Fila
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Jugador auditado", jugador)
     m2.metric("Precisión Analítica", f"{prec_est}%")
     m3.metric("Elo Rendimiento", elo_est)
     m4.metric("Errores detectados", len(perdidas_analizadas))
 
-    # 2. Pestañas Limpias de Contenido
     tab_errores, tab_trucos, tab_resumen = st.tabs([
         f"🚨 Errores y Pérdidas ({len(perdidas_analizadas)})", 
         f"⚡ Celadas Omitidas ({len(celadas_tricky)})", 
         "🧠 Diagnóstico Estructural"
     ])
 
-    # PESTAÑA 1: ERRORES CON TABLERO Y LÍNEA DE CASTIGO
     with tab_errores:
         if not perdidas_analizadas:
-            st.success("✨ ¡Partida limpia! No se detectaron pérdidas tácticas ni errores graves superiores a 0.75 puntos.")
+            st.success("✨ ¡Partida limpia! No se detectaron errores graves ni pérdidas tácticas superiores a 0.75 puntos.")
         else:
-            # Ordenar por gravedad de pérdida
             perdidas_analizadas.sort(key=lambda x: x["cpl"], reverse=True)
             
             for i, item in enumerate(perdidas_analizadas, 1):
@@ -299,28 +298,26 @@ if btn_analizar:
                 col_tablero, col_lineas = st.columns([1.1, 1.9])
                 
                 with col_tablero:
-                    # Tablero con flechas: Roja (la jugada) y Verde (la mejor)
                     svg_html = generar_tablero_svg(item["tablero_antes"], item["jugada_obj"], item["mejor_obj"], MI_COLOR)
                     st.markdown(svg_html, unsafe_allow_html=True)
-                    st.caption("<center>🔴 Jugada hecha | 🟢 Alternativa sugerida</center>", unsafe_allow_html=True)
+                    st.caption("<center>🔴 Jugada hecha | 🟢 Alternativa recomendada</center>", unsafe_allow_html=True)
                 
                 with col_lineas:
                     st.markdown(f"**Tu jugada:** :red[**{item['jugada_hecha']}**]")
-                    st.markdown(f"**Línea de castigo del rival:**")
+                    st.markdown("**Línea de castigo del rival:**")
                     st.code(item["linea_castigo"] if item["linea_castigo"] else "Sin castigo directo forzado.", language="text")
                     
                     st.markdown(f"**Mejor jugada Stockfish:** :green[**{item['mejor_jugada_san']}**]")
-                    st.markdown(f"**Línea óptima completa:**")
+                    st.markdown("**Línea óptima completa:**")
                     st.code(item["linea_optima"], language="text")
                     
                     if item["conceptos"]:
-                        st.markdown("**Diagnóstico de escuela:**")
+                        st.markdown("**Diagnóstico conceptual:**")
                         for c in item["conceptos"]:
                             st.info(f"💡 {c}")
 
                 st.markdown("</div>", unsafe_allow_html=True)
 
-    # PESTAÑA 2: TRUCOS Y TRIQUIÑUELAS
     with tab_trucos:
         if not celadas_tricky:
             st.info("La partida fue sólida; no surgieron celadas tácticas sorpresivas en la apertura.")
@@ -338,12 +335,11 @@ if btn_analizar:
                     svg_t = generar_tablero_svg(t_item["tablero"], mejor_jugada=t_item["movimiento_trampa"], color_usuario=MI_COLOR)
                     st.markdown(svg_t, unsafe_allow_html=True)
                 with c_det:
-                    st.markdown(f"**Secuencia táctica a 6 jugadas:**")
+                    st.markdown("**Secuencia táctica a 6 jugadas:**")
                     st.code(t_item["linea"], language="text")
-                    st.caption("Presiona puntos sensibles (jaque o ataque sobre f7/f2) para desestabilizar la defensa rival.")
+                    st.caption("Ataque directo a debilidades tácticas inmediatas (jaques o presión f7/f2).")
                 st.markdown("</div>", unsafe_allow_html=True)
 
-    # PESTAÑA 3: DIAGNÓSTICO ESTRUCTURAL (GRAU / DORFMAN)
     with tab_resumen:
         st.subheader("Patrones Posicionales Detectados")
         c1, c2 = st.columns(2)
@@ -353,5 +349,5 @@ if btn_analizar:
             st.write("- **Apertura:** Cuida el orden de piezas menores (caballos antes de alfiles según Grau).")
         with c2:
             st.markdown("#### 🎯 Dinámica de Piezas")
-            st.write("- **Regla de John Nunn (LPDO):** Minimiza tener 2 o más piezas sueltas en el tablero.")
-            st.write("- **Torres:** Busca columnas abiertas o semiabiertas activamente.")
+            st.write("- **Regla de John Nunn (LPDO):** Evita tener 2 o más piezas sueltas sin defensa.")
+            st.write("- **Torres:** Ocupa columnas abiertas o semiabiertas activamente.")
