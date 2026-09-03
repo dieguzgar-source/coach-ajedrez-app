@@ -1,5 +1,5 @@
 import os
-import tempfile
+import io
 import shutil
 import streamlit as st
 import chess
@@ -251,14 +251,24 @@ with col1:
     mi_color_str = "Blancas" if MI_COLOR == chess.WHITE else "Negras"
 
 with col2:
-    uploaded_file = st.file_uploader("Sube tu archivo PGN de la partida", type=["pgn"])
+    modo_entrada = st.radio("¿Cómo quieres introducir la partida?", ("Pegar texto PGN", "Subir archivo PGN"))
+    if modo_entrada == "Subir archivo PGN":
+        uploaded_file = st.file_uploader("Sube tu archivo PGN de la partida", type=["pgn"])
+        pgn_text = ""
+    else:
+        pgn_text = st.text_area("Pega el texto de tu partida PGN aquí:", height=150)
+        uploaded_file = None
 
 if st.button("Iniciar Análisis Táctico e Implacable", type="primary"):
-    if uploaded_file is not None:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pgn") as tmp:
-            tmp.write(uploaded_file.getvalue())
-            tmp_path = tmp.name
+    
+    # Procesar la entrada seleccionada
+    pgn_content = ""
+    if modo_entrada == "Subir archivo PGN" and uploaded_file is not None:
+        pgn_content = uploaded_file.getvalue().decode("utf-8", errors="replace")
+    elif modo_entrada == "Pegar texto PGN" and pgn_text.strip():
+        pgn_content = pgn_text.strip()
 
+    if pgn_content:
         with st.spinner("Desmantelando decisiones y cruzando marcos teóricos... Por favor, espera."):
             
             # --- PARCHE DE RUTAS PARA STOCKFISH (WINDOWS Y NUBE LINUX) ---
@@ -276,11 +286,12 @@ if st.button("Iniciar Análisis Táctico e Implacable", type="primary"):
                 st.error(f"Error al iniciar Stockfish: {e}. Ruta intentada: {RUTA_STOCKFISH}")
                 st.stop()
 
-            with open(tmp_path, "r", encoding="utf-8") as archivo_pgn:
-                partida = chess.pgn.read_game(archivo_pgn)
+            # Leer el PGN directamente desde la memoria (más rápido y sin archivos)
+            archivo_pgn = io.StringIO(pgn_content)
+            partida = chess.pgn.read_game(archivo_pgn)
 
             if partida is None:
-                st.error("El archivo PGN está vacío o no es válido.")
+                st.error("No se detectó ninguna partida válida en el texto. Revisa el formato PGN.")
                 engine.quit()
                 st.stop()
 
@@ -413,8 +424,6 @@ if st.button("Iniciar Análisis Táctico e Implacable", type="primary"):
                 jugada_numero += 1
 
             engine.quit()
-            if os.path.exists(tmp_path):
-                os.remove(tmp_path)
 
             mi_elo, mi_prec = calcular_elo_precision(mi_cpl)
             rival_elo, rival_prec = calcular_elo_precision(rival_cpl)
@@ -471,4 +480,4 @@ if st.button("Iniciar Análisis Táctico e Implacable", type="primary"):
                 for logro in set(mis_logros):
                     st.success(logro)
     else:
-        st.error("Por favor, sube un archivo PGN válido antes de iniciar el análisis.")
+        st.error("Por favor, sube un archivo o pega el texto PGN antes de iniciar el análisis.")
