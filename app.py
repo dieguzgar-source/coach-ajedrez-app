@@ -20,14 +20,9 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# CSS Personalizado - Diseño SaaS Premium
 st.markdown("""
 <style>
-    /* Reset y estilos base */
-    .stApp {
-        background: #f8fafc;
-    }
-    
+    .stApp { background: #f8fafc; }
     .main-title {
         text-align: center;
         font-size: 2.5rem;
@@ -38,7 +33,6 @@ st.markdown("""
         margin-bottom: 0.2rem;
         letter-spacing: -0.5px;
     }
-    
     .sub-title {
         text-align: center;
         color: #64748b;
@@ -47,8 +41,6 @@ st.markdown("""
         font-weight: 300;
         letter-spacing: 1px;
     }
-    
-    /* Tarjetas de errores premium */
     .card-error {
         background: #ffffff;
         border: 1px solid #e2e8f0;
@@ -58,13 +50,10 @@ st.markdown("""
         box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
         transition: all 0.2s ease;
     }
-    
     .card-error:hover {
         box-shadow: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -2px rgba(0,0,0,0.03);
         transform: translateY(-2px);
     }
-    
-    /* Badges de errores */
     .badge-blunder {
         background: #fee2e2;
         color: #991b1b;
@@ -75,7 +64,6 @@ st.markdown("""
         border: 1px solid #fecaca;
         display: inline-block;
     }
-    
     .badge-mistake {
         background: #fef3c7;
         color: #92400e;
@@ -86,7 +74,6 @@ st.markdown("""
         border: 1px solid #fde68a;
         display: inline-block;
     }
-    
     .badge-inaccuracy {
         background: #e0f2fe;
         color: #075985;
@@ -97,8 +84,6 @@ st.markdown("""
         border: 1px solid #bae6fd;
         display: inline-block;
     }
-    
-    /* Métricas dashboard */
     .metric-card {
         background: #ffffff;
         border-radius: 12px;
@@ -107,34 +92,10 @@ st.markdown("""
         box-shadow: 0 1px 3px rgba(0,0,0,0.04);
         text-align: center;
     }
-    
-    .metric-value {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #0f172a;
-        line-height: 1.2;
-    }
-    
-    .metric-label {
-        font-size: 0.85rem;
-        color: #64748b;
-        margin-top: 4px;
-        font-weight: 500;
-    }
-    
-    .metric-icon {
-        font-size: 1.5rem;
-        margin-bottom: 4px;
-    }
-    
-    /* Tablero responsivo */
-    .board-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        width: 100%;
-    }
-    
+    .metric-value { font-size: 2rem; font-weight: 700; color: #0f172a; line-height: 1.2; }
+    .metric-label { font-size: 0.85rem; color: #64748b; margin-top: 4px; font-weight: 500; }
+    .metric-icon { font-size: 1.5rem; margin-bottom: 4px; }
+    .board-container { display: flex; justify-content: center; align-items: center; width: 100%; }
     .board-container img {
         max-width: 100%;
         height: auto;
@@ -142,8 +103,6 @@ st.markdown("""
         box-shadow: 0 4px 6px -1px rgba(0,0,0,0.07);
         border: 1px solid #e2e8f0;
     }
-    
-    /* Info boxes */
     .info-box {
         background: #f1f5f9;
         border-radius: 10px;
@@ -151,37 +110,23 @@ st.markdown("""
         margin: 8px 0;
         border-left: 4px solid #3b82f6;
     }
-    
-    /* Progress bar custom */
-    .stProgress > div > div {
-        background: linear-gradient(90deg, #3b82f6, #8b5cf6);
-    }
-    
-    /* Responsive tweaks */
+    .stProgress > div > div { background: linear-gradient(90deg, #3b82f6, #8b5cf6); }
     @media (max-width: 768px) {
-        .metric-value {
-            font-size: 1.5rem;
-        }
-        .main-title {
-            font-size: 1.8rem;
-        }
-        .card-error {
-            padding: 16px;
-        }
+        .metric-value { font-size: 1.5rem; }
+        .main-title { font-size: 1.8rem; }
+        .card-error { padding: 16px; }
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Encabezado
 st.markdown('<div class="main-title">♟️ COACH DE AJEDREZ ÉLITE</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-title">Sistema de Análisis Posicional Avanzado • Grau • Dorfman • Nunn • Stockfish</div>', unsafe_allow_html=True)
 
 # =====================================================================
-# MOTORES DE DIAGNÓSTICO POSICIONAL Y TEÓRICO (VERSIÓN MEJORADA)
+# MOTORES DE DIAGNÓSTICO POSICIONAL Y TEÓRICO
 # =====================================================================
 
 def pv_a_san(tablero_origen, lista_movimientos, limite_jugadas=6):
-    """Convierte lista de movimientos a notación SAN"""
     t = tablero_origen.copy()
     secuencia = []
     for m in lista_movimientos[:limite_jugadas]:
@@ -193,38 +138,49 @@ def pv_a_san(tablero_origen, lista_movimientos, limite_jugadas=6):
     return " → ".join(secuencia)
 
 # =====================================================================
-# FUNCIÓN CORREGIDA: generar_tablero_svg
+# FUNCIÓN CORREGIDA Y ROBUSTA
 # =====================================================================
 def generar_tablero_svg(tablero, jugada_jugada=None, mejor_jugada=None, color_usuario=chess.WHITE, size=310):
     """
     Genera SVG del tablero con flechas para las jugadas y outposts resaltados.
-    Maneja de forma segura que jugada_jugada o mejor_jugada puedan ser None
-    o no ser objetos chess.Move.
+    Maneja cualquier error en la creación de flechas para evitar crashes.
     """
     flechas = []
     
-    # Verificar que jugada_jugada sea un objeto chess.Move válido
-    if jugada_jugada is not None and hasattr(jugada_jugada, 'from_square') and hasattr(jugada_jugada, 'to_square'):
-        flechas.append(chess.svg.Arrow(jugada_jugada.from_square, jugada_jugada.to_square, color="#dc2626", opacity=0.8))
+    # Flecha para la jugada del usuario (roja)
+    if isinstance(jugada_jugada, chess.Move):
+        try:
+            flechas.append(chess.svg.Arrow(jugada_jugada.from_square, jugada_jugada.to_square, color="#dc2626", opacity=0.8))
+        except Exception:
+            pass  # Si falla, simplemente no se dibuja la flecha
     
-    # Verificar que mejor_jugada sea un objeto chess.Move válido
-    if mejor_jugada is not None and hasattr(mejor_jugada, 'from_square') and hasattr(mejor_jugada, 'to_square'):
-        flechas.append(chess.svg.Arrow(mejor_jugada.from_square, mejor_jugada.to_square, color="#16a34a", opacity=0.8))
+    # Flecha para la mejor jugada (verde)
+    if isinstance(mejor_jugada, chess.Move):
+        try:
+            flechas.append(chess.svg.Arrow(mejor_jugada.from_square, mejor_jugada.to_square, color="#16a34a", opacity=0.8))
+        except Exception:
+            pass
     
-    # Detectar outposts para resaltarlos
     outposts = detectar_outposts(tablero, color_usuario)
-    
-    # lastmove solo si jugada_jugada es un chess.Move
     lastmove = jugada_jugada if isinstance(jugada_jugada, chess.Move) else None
     
-    svg_data = chess.svg.board(
-        board=tablero,
-        orientation=color_usuario,
-        arrows=flechas,
-        size=size,
-        squares=outposts,
-        lastmove=lastmove
-    )
+    try:
+        svg_data = chess.svg.board(
+            board=tablero,
+            orientation=color_usuario,
+            arrows=flechas,
+            size=size,
+            squares=outposts,
+            lastmove=lastmove
+        )
+    except Exception:
+        # Si algo falla al generar el SVG, generamos uno sin flechas ni outposts
+        svg_data = chess.svg.board(
+            board=tablero,
+            orientation=color_usuario,
+            size=size
+        )
+    
     b64 = base64.b64encode(svg_data.encode("utf-8")).decode("utf-8")
     return f'<div class="board-container"><img src="data:image/svg+xml;base64,{b64}" style="width:100%; max-width:{size}px;"/></div>'
 
@@ -233,79 +189,47 @@ def generar_tablero_svg(tablero, jugada_jugada=None, mejor_jugada=None, color_us
 # =====================================================================
 
 def evaluar_material(tablero, color):
-    """Evalúa el material en el tablero"""
     valores = {chess.PAWN: 1, chess.KNIGHT: 3, chess.BISHOP: 3, chess.ROOK: 5, chess.QUEEN: 9}
     return sum(len(tablero.pieces(p, color)) * v for p, v in valores.items())
 
 def fase_del_juego(tablero, turno):
-    """Determina la fase actual del juego"""
     if turno <= 10:
         return "Apertura"
-    
     hay_damas = len(tablero.pieces(chess.QUEEN, chess.WHITE)) > 0 or len(tablero.pieces(chess.QUEEN, chess.BLACK)) > 0
     mat_total = evaluar_material(tablero, chess.WHITE) + evaluar_material(tablero, chess.BLACK)
-    
     if not hay_damas or mat_total < 28:
         return "Final"
     return "Medio Juego"
 
-# =====================================================================
-# NUEVAS FUNCIONES DE ANÁLISIS AVANZADO (Outposts y Peones Pasados)
-# =====================================================================
-
 def detectar_outposts(tablero, color):
-    """
-    Detecta casillas débiles (outposts) para caballos.
-    Un outpost es una casilla avanzada donde un caballo no puede ser atacado por peones enemigos.
-    """
     outposts = []
     enemy_color = not color
     enemy_pawns = tablero.pieces(chess.PAWN, enemy_color)
-    
-    # Casillas que atacan los peones enemigos
     attacked_by_pawns = set()
     for pawn in enemy_pawns:
         attacked_by_pawns.update(tablero.attacks(pawn))
-    
-    # Buscar casillas avanzadas para el caballo
     for square in chess.SQUARES:
         row = chess.square_rank(square)
-        col = chess.square_file(square)
-        
-        # Solo casillas avanzadas (más allá de la 4ta fila para blancas, 5ta para negras)
         if color == chess.WHITE and row < 4:
             continue
         if color == chess.BLACK and row > 3:
             continue
-            
-        # Verificar que la casilla no esté atacada por peones enemigos
-        if square not in attacked_by_pawns:
-            # Verificar que no esté ocupada por pieza propia
-            if not tablero.piece_at(square):
-                outposts.append(square)
-    
-    return outposts[:6]  # Limitar a 6 outposts para no saturar
+        if square not in attacked_by_pawns and not tablero.piece_at(square):
+            outposts.append(square)
+    return outposts[:6]
 
 def detectar_peon_pasado(tablero, color):
-    """
-    Detecta peones pasados en el final.
-    Un peón pasado es aquel que no tiene peones enemigos en su columna o columnas adyacentes.
-    """
     peones_pasados = []
     peones = tablero.pieces(chess.PAWN, color)
     enemy_peones = tablero.pieces(chess.PAWN, not color)
-    
     for peon in peones:
         file = chess.square_file(peon)
         rank = chess.square_rank(peon)
-        
-        # Verificar si hay peones enemigos en esta columna o adyacentes
         bloqueado = False
         for f in [file - 1, file, file + 1]:
             if 0 <= f <= 7:
                 for ep in enemy_peones:
                     if chess.square_file(ep) == f:
-                        # Si el peón enemigo está más avanzado, bloquea
                         if color == chess.WHITE and chess.square_rank(ep) > rank:
                             bloqueado = True
                             break
@@ -314,23 +238,17 @@ def detectar_peon_pasado(tablero, color):
                             break
             if bloqueado:
                 break
-        
         if not bloqueado:
             peones_pasados.append(peon)
-    
     return peones_pasados
 
 def detectar_debilidades_estructurales(tablero, color):
-    """Detecta peones doblados, aislados y retrasados"""
     debilidades = []
     peones = tablero.pieces(chess.PAWN, color)
-    
-    # Peones doblados y aislados
     for col in range(8):
         peones_col = [p for p in peones if chess.square_file(p) == col]
         if len(peones_col) >= 2:
             debilidades.append(f"Peones doblados en columna {chess.FILE_NAMES[col].upper()}")
-        
         if len(peones_col) == 1:
             hay_adyacentes = False
             for adj_col in [col - 1, col + 1]:
@@ -340,10 +258,8 @@ def detectar_debilidades_estructurales(tablero, color):
                         break
             if not hay_adyacentes:
                 debilidades.append(f"Peón aislado en columna {chess.FILE_NAMES[col].upper()}")
-    
     return debilidades
 
-# Funciones existentes (mantenidas del código original)
 def caballo_en_el_borde(jugada, pieza_movida):
     if pieza_movida == chess.KNIGHT:
         col = chess.square_file(jugada.to_square)
@@ -378,16 +294,13 @@ def evaluar_estrategia_torres(tablero, color, jugada, pieza_movida):
     peones_rivales = tablero.pieces(chess.PAWN, not color)
     hay_propio = any(chess.square_file(p) == col for p in peones_propios)
     hay_rival = any(chess.square_file(p) == col for p in peones_rivales)
-    
     if not hay_propio and not hay_rival:
         logros.append(f"Torre en columna abierta ({col_name}): Dominio absoluto de una vía libre (Fernández Siles).")
     elif not hay_propio and hay_rival:
         logros.append(f"Torre en columna semiabierta ({col_name}): Presión activa sobre debilidades del rival.")
-        
     torres_en_col = [sq for sq in tablero.pieces(chess.ROOK, color) if chess.square_file(sq) == col]
     if len(torres_en_col) >= 2 and not hay_propio:
         logros.append(f"Torres dobladas en la columna {col_name}: Maniobra activa estrangulando la defensa enemiga.")
-        
     es_octava = (color == chess.WHITE and row == 7) or (color == chess.BLACK and row == 0)
     if es_octava:
         logros.append("Torre en octava fila: Penetración en la retaguardia enemiga contra las bases de peones.")
@@ -603,7 +516,7 @@ with col_der:
 btn_analizar = st.button("🚀 Iniciar Auditoría Implacable", type="primary", use_container_width=True)
 
 # =====================================================================
-# EJECUCIÓN DEL ANÁLISIS (VERSIÓN MEJORADA CON OPTIMIZACIONES)
+# EJECUCIÓN DEL ANÁLISIS
 # =====================================================================
 
 if btn_analizar:
@@ -646,16 +559,12 @@ if btn_analizar:
     casillas_visitadas_propias = set()
     rey_atascado_advertido = False
 
-    # Obtener el número total de movimientos para la barra de progreso
     total_moves = sum(1 for _ in partida.mainline())
-    
-    # Barra de progreso y estado
     progress_bar = st.progress(0, text="Iniciando auditoría...")
     status_text = st.empty()
     
     with st.spinner("Auditoría implacable: calculando variantes de castigo, teoremas de Grau y celadas..."):
         for idx, nodo in enumerate(partida.mainline()):
-            # Actualizar barra de progreso
             progress = (idx + 1) / total_moves
             progress_bar.progress(progress, text=f"Analizando jugada {idx+1} de {total_moves}...")
             status_text.info(f"🔍 Procesando turno {(idx+1)//2 + 1}...")
@@ -670,15 +579,12 @@ if btn_analizar:
             san_jugada = tablero.san(jugada)
             tablero_antes = tablero.copy()
             
-            # --- Evaluación previa con optimización de tiempo ---
             limite_actual = chess.engine.Limit(time=0.15)
             info_antes = engine.analyse(tablero, limite_actual)
             eval_antes = 0
             if "score" in info_antes and info_antes["score"]:
                 sc = info_antes["score"].pov(tablero.turn).score(mate_score=10000)
                 eval_antes = sc if sc is not None else 0
-                
-                # Optimización: si la ventaja es > 500 centipawns, usar menos tiempo
                 if abs(eval_antes) > 500:
                     limite_actual = chess.engine.Limit(time=0.05)
                     info_antes = engine.analyse(tablero, limite_actual)
@@ -691,7 +597,6 @@ if btn_analizar:
             da_jaque = tablero.gives_check(jugada)
             es_de_defensa = (tablero.is_attacked_by(not tablero.turn, jugada.from_square) or tablero.is_check()) if es_mi_turno else False
 
-            # --- Multi-PV Inteligente: solo en momentos críticos ---
             if es_mi_turno and turno_num <= 18 and abs(eval_antes) < 300:
                 try:
                     for info_alt in engine.analyse(tablero, chess.engine.Limit(time=0.1), multipv=2):
@@ -712,7 +617,6 @@ if btn_analizar:
 
             tablero.push(jugada)
             
-            # Definir es_de_ataque siempre
             es_de_ataque = False
             if es_mi_turno:
                 for sq in tablero.attacks(jugada.to_square):
@@ -722,7 +626,6 @@ if btn_analizar:
                         break
                 es_de_ataque = es_de_ataque or da_jaque or es_captura
 
-            # Evaluación posterior
             info_despues = engine.analyse(tablero, limite_actual)
             eval_despues = 0
             if "score" in info_despues and info_despues["score"]:
@@ -733,7 +636,6 @@ if btn_analizar:
             linea_castigo = pv_a_san(tablero, pv_castigo, 6)
             cpl = max(0, eval_antes - eval_despues)
 
-            # --- ANÁLISIS ESTRATÉGICO EXCLUSIVO PARA MI COLOR ---
             if es_mi_turno:
                 mi_cpl.append(cpl)
                 
@@ -825,10 +727,8 @@ if btn_analizar:
 
             jugada_contador += 1
 
-    # Limpiar barra de progreso
     progress_bar.empty()
     status_text.empty()
-
     engine.quit()
 
     elo_est, prec_est = calcular_elo_precision(mi_cpl)
@@ -839,7 +739,7 @@ if btn_analizar:
     p_err = round((estadisticas["jugadas_errores"] / total_moves) * 100, 1)
 
     # =====================================================================
-    # PANEL DE RESULTADOS (DASHBOARD EJECUTIVO)
+    # PANEL DE RESULTADOS
     # =====================================================================
     st.markdown("---")
     
@@ -892,7 +792,6 @@ if btn_analizar:
         "🎯 Retos de Maestría"
     ])
 
-    # PESTAÑA 1: ERRORES VISUALES CON TABLERO Y LÍNEAS
     with tab_errores:
         if not perdidas_analizadas:
             st.success("✨ ¡Partida formidable! No se detectaron errores tácticos graves ni imprecisiones mayores a 0.75 peones.")
@@ -931,7 +830,6 @@ if btn_analizar:
 
                 st.markdown("</div>", unsafe_allow_html=True)
 
-    # PESTAÑA 2: CELADAS OMITIDAS
     with tab_trucos:
         if not celadas_tricky:
             st.info("La partida discurrió por cauces estrictamente sólidos; no hubo celadas tácticas omitidas.")
@@ -953,7 +851,6 @@ if btn_analizar:
                     st.caption("Ataque directo a debilidades inmediatas o presión sobre casillas sensibles (f7/f2).")
                 st.markdown("</div>", unsafe_allow_html=True)
 
-    # PESTAÑA 3: DIAGNÓSTICO ESTRATÉGICO Y LOGROS
     with tab_estrategia:
         col_err, col_log = st.columns(2)
         with col_err:
@@ -971,7 +868,6 @@ if btn_analizar:
                 for logro in list(set(mis_logros)):
                     st.success(f"• {logro}")
 
-    # PESTAÑA 4: RETOS ANALÍTICOS DE MAESTRÍA
     with tab_retos:
         st.subheader("🧠 Preguntas Pedagógicas para Auto-Auditoría")
         st.write("Roberto Grau sostenía que la maestría nace de la autocrítica profunda. Responde mentalmente:")
