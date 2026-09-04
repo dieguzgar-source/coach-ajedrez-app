@@ -585,7 +585,7 @@ with col_der:
 btn_analizar = st.button("🚀 Iniciar Auditoría Implacable", type="primary", use_container_width=True)
 
 # =====================================================================
-# EJECUCIÓN DEL ANÁLISIS (VERSIÓN MEJORADA CON OPTIMIZACIONES)
+# EJECUCIÓN DEL ANÁLISIS (VERSIÓN MEJORADA CON OPTIMIZACIONES Y CORRECCIÓN)
 # =====================================================================
 
 if btn_analizar:
@@ -672,6 +672,7 @@ if btn_analizar:
             
             es_captura = tablero.is_capture(jugada)
             da_jaque = tablero.gives_check(jugada)
+            # Definir es_de_defensa (usado más adelante)
             es_de_defensa = (tablero.is_attacked_by(not tablero.turn, jugada.from_square) or tablero.is_check()) if es_mi_turno else False
 
             # --- Multi-PV Inteligente: solo en momentos críticos ---
@@ -697,7 +698,19 @@ if btn_analizar:
 
             tablero.push(jugada)
             
-            # --- Evaluación posterior ---
+            # --- INICIO DE LA CORRECCIÓN: definir es_de_ataque siempre ---
+            # Calculamos si la jugada fue de ataque (solo si es mi turno)
+            es_de_ataque = False
+            if es_mi_turno:
+                for sq in tablero.attacks(jugada.to_square):
+                    opp_piece = tablero.piece_at(sq)
+                    if opp_piece and opp_piece.color == color_rival:
+                        es_de_ataque = True
+                        break
+                es_de_ataque = es_de_ataque or da_jaque or es_captura
+            # --- FIN DE LA CORRECCIÓN ---
+
+            # Evaluación posterior
             info_despues = engine.analyse(tablero, limite_actual)
             eval_despues = 0
             if "score" in info_despues and info_despues["score"]:
