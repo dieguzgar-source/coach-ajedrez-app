@@ -192,16 +192,30 @@ def pv_a_san(tablero_origen, lista_movimientos, limite_jugadas=6):
             break
     return " → ".join(secuencia)
 
+# =====================================================================
+# FUNCIÓN CORREGIDA: generar_tablero_svg
+# =====================================================================
 def generar_tablero_svg(tablero, jugada_jugada=None, mejor_jugada=None, color_usuario=chess.WHITE, size=310):
-    """Genera SVG del tablero con flechas para las jugadas y outposts resaltados"""
+    """
+    Genera SVG del tablero con flechas para las jugadas y outposts resaltados.
+    Maneja de forma segura que jugada_jugada o mejor_jugada puedan ser None
+    o no ser objetos chess.Move.
+    """
     flechas = []
-    if jugada_jugada:
+    
+    # Verificar que jugada_jugada sea un objeto chess.Move válido
+    if jugada_jugada is not None and hasattr(jugada_jugada, 'from_square') and hasattr(jugada_jugada, 'to_square'):
         flechas.append(chess.svg.Arrow(jugada_jugada.from_square, jugada_jugada.to_square, color="#dc2626", opacity=0.8))
-    if mejor_jugada:
+    
+    # Verificar que mejor_jugada sea un objeto chess.Move válido
+    if mejor_jugada is not None and hasattr(mejor_jugada, 'from_square') and hasattr(mejor_jugada, 'to_square'):
         flechas.append(chess.svg.Arrow(mejor_jugada.from_square, mejor_jugada.to_square, color="#16a34a", opacity=0.8))
     
     # Detectar outposts para resaltarlos
     outposts = detectar_outposts(tablero, color_usuario)
+    
+    # lastmove solo si jugada_jugada es un chess.Move
+    lastmove = jugada_jugada if isinstance(jugada_jugada, chess.Move) else None
     
     svg_data = chess.svg.board(
         board=tablero,
@@ -209,10 +223,14 @@ def generar_tablero_svg(tablero, jugada_jugada=None, mejor_jugada=None, color_us
         arrows=flechas,
         size=size,
         squares=outposts,
-        lastmove=jugada_jugada if jugada_jugada else None
+        lastmove=lastmove
     )
     b64 = base64.b64encode(svg_data.encode("utf-8")).decode("utf-8")
     return f'<div class="board-container"><img src="data:image/svg+xml;base64,{b64}" style="width:100%; max-width:{size}px;"/></div>'
+
+# =====================================================================
+# RESTO DE FUNCIONES (sin cambios)
+# =====================================================================
 
 def evaluar_material(tablero, color):
     """Evalúa el material en el tablero"""
@@ -585,7 +603,7 @@ with col_der:
 btn_analizar = st.button("🚀 Iniciar Auditoría Implacable", type="primary", use_container_width=True)
 
 # =====================================================================
-# EJECUCIÓN DEL ANÁLISIS (VERSIÓN MEJORADA CON OPTIMIZACIONES Y CORRECCIÓN)
+# EJECUCIÓN DEL ANÁLISIS (VERSIÓN MEJORADA CON OPTIMIZACIONES)
 # =====================================================================
 
 if btn_analizar:
@@ -653,7 +671,6 @@ if btn_analizar:
             tablero_antes = tablero.copy()
             
             # --- Evaluación previa con optimización de tiempo ---
-            # Si la ventaja ya es decisiva (> +5.00), reducimos tiempo de cálculo
             limite_actual = chess.engine.Limit(time=0.15)
             info_antes = engine.analyse(tablero, limite_actual)
             eval_antes = 0
@@ -672,14 +689,11 @@ if btn_analizar:
             
             es_captura = tablero.is_capture(jugada)
             da_jaque = tablero.gives_check(jugada)
-            # Definir es_de_defensa (usado más adelante)
             es_de_defensa = (tablero.is_attacked_by(not tablero.turn, jugada.from_square) or tablero.is_check()) if es_mi_turno else False
 
             # --- Multi-PV Inteligente: solo en momentos críticos ---
-            # Si hubo un cambio brusco de evaluación, usamos multipv
             if es_mi_turno and turno_num <= 18 and abs(eval_antes) < 300:
                 try:
-                    # Analizar con multipv=2 para detectar celadas
                     for info_alt in engine.analyse(tablero, chess.engine.Limit(time=0.1), multipv=2):
                         pv_alt = info_alt.get("pv", [])
                         if pv_alt and pv_alt[0] != jugada:
@@ -698,8 +712,7 @@ if btn_analizar:
 
             tablero.push(jugada)
             
-            # --- INICIO DE LA CORRECCIÓN: definir es_de_ataque siempre ---
-            # Calculamos si la jugada fue de ataque (solo si es mi turno)
+            # Definir es_de_ataque siempre
             es_de_ataque = False
             if es_mi_turno:
                 for sq in tablero.attacks(jugada.to_square):
@@ -708,7 +721,6 @@ if btn_analizar:
                         es_de_ataque = True
                         break
                 es_de_ataque = es_de_ataque or da_jaque or es_captura
-            # --- FIN DE LA CORRECCIÓN ---
 
             # Evaluación posterior
             info_despues = engine.analyse(tablero, limite_actual)
@@ -725,7 +737,6 @@ if btn_analizar:
             if es_mi_turno:
                 mi_cpl.append(cpl)
                 
-                # Clasificación de toma de decisiones
                 if cpl > 150:
                     estadisticas["jugadas_errores"] += 1
                 elif es_de_ataque:
@@ -740,26 +751,21 @@ if btn_analizar:
                 elif cpl > 60:
                     estadisticas["vision_mediata_fallos"] += 1
 
-                # Banco de Conceptos Específicos de Grau v7 + nuevas funciones
                 turn_concepts = []
                 
-                # Nuevas funciones de análisis avanzado
                 outposts = detectar_outposts(tablero_antes, MI_COLOR)
                 if outposts and cpl > 30:
                     turn_concepts.append(f"Outpost disponible en {chess.square_name(outposts[0]).upper()} para un caballo. Posibilidad de dominio posicional.")
                 
-                # Detectar peones pasados en final
                 if fase == "Final":
                     peones_pasados = detectar_peon_pasado(tablero, MI_COLOR)
                     if peones_pasados:
                         turn_concepts.append(f"Peón pasado en {chess.square_name(peones_pasados[0]).upper()} - factor decisivo en el final.")
                 
-                # Detectar debilidades estructurales
                 debilidades = detectar_debilidades_estructurales(tablero, MI_COLOR)
                 if debilidades:
                     turn_concepts.extend(debilidades)
                 
-                # Funciones existentes
                 if caballo_en_el_borde(jugada, pieza_tipo) and cpl > 30:
                     turn_concepts.append("Caballo marginado en la banda: Pérdida de influencia central (Tarrasch / Grau).")
                 if detectar_alfil_malo(tablero, MI_COLOR) and cpl > 40 and fase == "Medio Juego":
@@ -782,18 +788,15 @@ if btn_analizar:
                 turn_concepts.extend(evaluar_profilaxis_descuidada(cpl, turno_num, san_jugada))
                 turn_concepts.extend(evaluar_alfil_vs_caballo(tablero, MI_COLOR, fase))
 
-                # Enroque tardío
                 rey_sq_init = chess.E1 if MI_COLOR == chess.WHITE else chess.E8
                 if turno_num == 12 and tablero.king(MI_COLOR) == rey_sq_init and not rey_atascado_advertido:
                     turn_concepts.append("Negligencia de Enroque (Grau Tomo I): Medio juego alcanzado con el rey vulnerable en el centro.")
                     rey_atascado_advertido = True
 
-                # Acumular a la lista maestra de errores estratégicos
                 for tc in turn_concepts:
                     if tc not in mis_errores_estrategicos:
                         mis_errores_estrategicos.append(tc)
 
-                # Logros posicionales
                 if torre_en_septima(jugada, pieza_tipo, MI_COLOR):
                     mis_logros.append(f"Torre en séptima fila en T{turno_num}: Dominio activo según Fernández Siles.")
                 mis_logros.extend(evaluar_estrategia_torres(tablero, MI_COLOR, jugada, pieza_tipo))
@@ -802,7 +805,6 @@ if btn_analizar:
 
                 casillas_visitadas_propias.add(jugada.to_square)
 
-                # Si el error es notable, se archiva para mostrar en la pestaña de errores
                 if cpl >= 75 and mejor_jugada and jugada != mejor_jugada:
                     tipo_fallo = "Error Grave (Blunder)" if cpl >= 180 else "Imprecisión / Error"
                     perdidas_analizadas.append({
@@ -841,7 +843,6 @@ if btn_analizar:
     # =====================================================================
     st.markdown("---")
     
-    # Métricas clave con iconos
     m1, m2, m3, m4 = st.columns(4)
     with m1:
         st.markdown(f"""
